@@ -1,1 +1,1 @@
-# ai-snippets
+# Red Hat AI Snippets
