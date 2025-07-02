@@ -1,0 +1,117 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: template-06noci
+  namespace: redhat-ods-applications
+  labels:
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    opendatahub.io/apiProtocol: REST
+    opendatahub.io/modelServingSupport: '["single"]'
+
+objects:
+  - apiVersion: serving.kserve.io/v1alpha1
+    kind: ServingRuntime
+    metadata:
+      name: custom-triton-2410
+      labels:
+        name: custom-triton-2410
+        opendatahub.io/configurable: 'true'
+        opendatahub.io/dashboard: 'true'
+      annotations:
+        maxLoadingConcurrency: '2'
+        openshift.io/display-name: Custom Triton runtime 24.10
+        enable-auth: 'true'
+        enable-route: 'true'
+    spec:
+      annotations:
+        prometheus.io/port: '8002'
+        prometheus.io/path: /metrics
+        serving.knative.openshift.io/enablePassthrough: 'true'
+        prometheus.io/scrape: 'true'
+        sidecar.istio.io/inject: 'true'
+        sidecar.istio.io/rewriteAppHTTPProbers: 'true'
+      supportedModelFormats:
+        - name: keras
+          version: '2'
+          autoSelect: true
+        - name: onnx
+          version: '1'
+          autoSelect: true
+        - name: pytorch
+          version: '1'
+          autoSelect: true
+        - name: tensorflow
+          version: '1'
+          autoSelect: true
+        - name: python
+          version: '1'
+          autoSelect: true
+        - name: tensorrt
+          version: '7'
+          autoSelect: true
+        - name: bls
+          version: '1'
+          autoSelect: true
+        - name: ensemble
+          version: '1'
+          autoSelect: true
+        - name: fil
+          version: '1'
+          autoSelect: true
+      protocolVersions:
+        - grpc-v2
+        - v2
+      multiModel: false
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        - name: local-model-repo
+          emptyDir: {}
+      containers:
+        - name: kserve-container
+          image: 'nvcr.io/nvidia/tritonserver:24.10-py3'
+          command:
+            - tritonserver
+          args:
+            - '--model-repository=/mnt/models/'
+            - '--model-control-mode=explicit'
+            - '--strict-readiness=false'
+            - '--allow-http=true'
+            - '--allow-sagemaker=false'
+            - '--load-model=*'
+            - '--allow-metrics=true'
+            - '--http-port=8080'
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: local-model-repo
+              mountPath: /mnt/models/
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: '5'
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command:
+                - curl
+                - '--fail'
+                - '--silent'
+                - '--show-error'
+                - '--max-time'
+                - '9'
+                - 'http://localhost:8080/v2/health/live'
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            timeoutSeconds: 10
+      builtInAdapter:
+        serverType: triton
+        runtimeManagementPort: 8001
+        memBufferBytes: 134217728
+        modelLoadingTimeoutMillis: 90000
+ 
