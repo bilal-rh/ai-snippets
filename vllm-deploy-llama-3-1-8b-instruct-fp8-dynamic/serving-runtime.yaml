@@ -1,4 +1,4 @@
-cat << 'EOF' | oc apply -f-
+#cat << 'EOF' | oc apply -f-
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
@@ -42,4 +42,4 @@ spec:
   supportedModelFormats:
   - autoSelect: true
     name: vLLM
-EOF
+#EOF
